@@ -1,7 +1,23 @@
 from enum import Enum
 from queue import PriorityQueue
 import numpy as np
+import matplotlib.pyplot as plt
 
+def plot_grid(grid, start, goal, path):
+    plt.imshow(grid, cmap='Greys', origin='lower')
+
+    # For the purposes of the visual the east coordinate lay along
+    # the x-axis and the north coordinates long the y-axis.
+    plt.plot(start[1], start[0], 'x')
+    plt.plot(goal[1], goal[0], 'x')
+
+    if path is not None:
+        pp = np.array(path)
+        plt.plot(pp[:, 1], pp[:, 0], 'g')
+
+    plt.xlabel('EAST')
+    plt.ylabel('NORTH')
+    plt.show()
 
 def create_grid(data, drone_altitude, safety_distance):
     """
@@ -50,12 +66,16 @@ class Action(Enum):
     to the current grid position. The third and final value
     is the cost of performing the action.
     """
-
-    WEST = (0, -1, 1)
-    EAST = (0, 1, 1)
+    
     NORTH = (-1, 0, 1)
+    NORTH_EAST = (-1, 1, np.sqrt(2))
+    EAST = (0, 1, 1)
+    SOUTH_EAST = (1, 1, np.sqrt(2))
     SOUTH = (1, 0, 1)
-
+    SOUTH_WEST = (1, -1, np.sqrt(2))
+    WEST = (0, -1, 1)
+    NORTH_WEST = (-1, -1, np.sqrt(2))
+    
     @property
     def cost(self):
         return self.value[2]
@@ -78,14 +98,28 @@ def valid_actions(grid, current_node):
 
     if x - 1 < 0 or grid[x - 1, y] == 1:
         valid_actions.remove(Action.NORTH)
-    if x + 1 > n or grid[x + 1, y] == 1:
+        valid_actions.remove(Action.NORTH_EAST)
+        valid_actions.remove(Action.NORTH_WEST)
+    elif x + 1 > n or grid[x + 1, y] == 1:
         valid_actions.remove(Action.SOUTH)
+        valid_actions.remove(Action.SOUTH_EAST)
+        valid_actions.remove(Action.SOUTH_WEST)
+
     if y - 1 < 0 or grid[x, y - 1] == 1:
         valid_actions.remove(Action.WEST)
-    if y + 1 > m or grid[x, y + 1] == 1:
+        if Action.NORTH_WEST in valid_actions:
+            valid_actions.remove(Action.NORTH_WEST)
+        elif Action.SOUTH_WEST in valid_actions:
+            valid_actions.remove(Action.SOUTH_WEST)
+    elif y + 1 > m or grid[x, y + 1] == 1:
         valid_actions.remove(Action.EAST)
+        if Action.NORTH_EAST in valid_actions:
+            valid_actions.remove(Action.NORTH_EAST)
+        elif Action.SOUTH_EAST in valid_actions:
+            valid_actions.remove(Action.SOUTH_EAST)
 
     return valid_actions
+
 
 
 def a_star(grid, h, start, goal):
@@ -142,5 +176,39 @@ def a_star(grid, h, start, goal):
 
 
 def heuristic(position, goal_position):
-    return np.linalg.norm(np.array(position) - np.array(goal_position))
+    #return np.linalg.norm(np.array(position) - np.array(goal_position)) # Euclidean distance
+    return abs(position[0] - goal_position[0]) + abs(position[1] - goal_position[1]) # Manhatten distance
+    # return np.sqrt((position[0] - goal_position[0])**2 + (position[1] - goal_position[1])**2) # Euclidean distance
 
+def point(p):
+    return np.array([p[0], p[1], 1])
+
+def collinearity_check(p1, p2, p3, epsilon=1e-6): 
+    mat = np.vstack((p1, p2, p3))
+    det = np.linalg.det(mat)
+    
+    if det < epsilon:
+        return True
+    else:
+        return False
+
+def prune_path(path):
+    print("Removing colinear points...")
+    if path is not None:
+        pruned_path = [p for p in path]
+        num_points = len(pruned_path)
+        i = 0
+        while i < len(pruned_path) - 2:
+            p1 = point(pruned_path[i])
+            p2 = point(pruned_path[i+1])
+            p3 = point(pruned_path[i+2])
+            
+            if collinearity_check(p1, p2, p3):
+                pruned_path.remove(pruned_path[i+1])
+            else:
+                i += 1
+        print("- points removed: ", num_points - len(pruned_path))
+    else:
+        pruned_path = path
+        
+    return pruned_path
