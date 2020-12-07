@@ -75,7 +75,7 @@ class Action(Enum):
     SOUTH_WEST = (1, -1, np.sqrt(2))
     WEST = (0, -1, 1)
     NORTH_WEST = (-1, -1, np.sqrt(2))
-    
+
     @property
     def cost(self):
         return self.value[2]
@@ -95,7 +95,6 @@ def valid_actions(grid, current_node):
 
     # check if the node is off the grid or
     # it's an obstacle
-
     if x - 1 < 0 or grid[x - 1, y] == 1:
         valid_actions.remove(Action.NORTH)
         valid_actions.remove(Action.NORTH_EAST)
@@ -108,15 +107,15 @@ def valid_actions(grid, current_node):
     if y - 1 < 0 or grid[x, y - 1] == 1:
         valid_actions.remove(Action.WEST)
         if Action.NORTH_WEST in valid_actions:
-            valid_actions.remove(Action.NORTH_WEST)
-        elif Action.SOUTH_WEST in valid_actions:
             valid_actions.remove(Action.SOUTH_WEST)
+        elif Action.SOUTH_WEST in valid_actions:
+            valid_actions.remove(Action.NORTH_WEST)
     elif y + 1 > m or grid[x, y + 1] == 1:
         valid_actions.remove(Action.EAST)
         if Action.NORTH_EAST in valid_actions:
-            valid_actions.remove(Action.NORTH_EAST)
-        elif Action.SOUTH_EAST in valid_actions:
             valid_actions.remove(Action.SOUTH_EAST)
+        elif Action.SOUTH_EAST in valid_actions:
+            valid_actions.remove(Action.NORTH_EAST)
 
     return valid_actions
 
@@ -176,18 +175,16 @@ def a_star(grid, h, start, goal):
 
 
 def heuristic(position, goal_position):
-    #return np.linalg.norm(np.array(position) - np.array(goal_position)) # Euclidean distance
     return abs(position[0] - goal_position[0]) + abs(position[1] - goal_position[1]) # Manhatten distance
-    # return np.sqrt((position[0] - goal_position[0])**2 + (position[1] - goal_position[1])**2) # Euclidean distance
 
 def point(p):
     return np.array([p[0], p[1], 1])
 
-def collinearity_check(p1, p2, p3, epsilon=1e-6): 
+def collinearity_check(p1, p2, p3, epsilon=1e-5): 
     mat = np.vstack((p1, p2, p3))
     det = np.linalg.det(mat)
-    
-    if det < epsilon:
+
+    if abs(det) < epsilon:
         return True
     else:
         return False

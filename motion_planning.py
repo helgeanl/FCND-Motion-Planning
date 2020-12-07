@@ -118,7 +118,7 @@ class MotionPlanning(Drone):
     def plan_path(self):
         self.flight_state = States.PLANNING
         TARGET_ALTITUDE = 5
-        SAFETY_DISTANCE = 2
+        SAFETY_DISTANCE = 5
 
         self.target_position[2] = TARGET_ALTITUDE
 
@@ -127,7 +127,7 @@ class MotionPlanning(Drone):
         
         self.set_home_position(float(lat_lon['lon0']), float(lat_lon['lat0']), 0)
 
-        local_north, local_east, local_up = global_to_local(self.global_position, self.global_home)
+        local_north, local_east, local_down = global_to_local(self.global_position, self.global_home)
         
         print('global home {0}, position {1}, local position {2}'.format(self.global_home, self.global_position,
                                                                          self.local_position))
@@ -138,17 +138,16 @@ class MotionPlanning(Drone):
         grid, north_offset, east_offset = create_grid(data, TARGET_ALTITUDE, SAFETY_DISTANCE)
         print("North offset = {0}, east offset = {1}".format(north_offset, east_offset))
         
-        # Define starting point on the grid (this is just grid center)
+        # Define starting point on the grid
         grid_start = (int(local_north - north_offset), int(local_east - east_offset))
-    
+
         # Set goal as some arbitrary position on the grid
         if len(self.global_goal) == 0:
             print("No goal set, can't plan a new route!")
             return
         local_goal = global_to_local(self.global_goal, self.global_home)
         grid_goal = (int(local_goal[0] - north_offset), int(local_goal[1] - east_offset))
-        
-    
+        # grid_goal = (-138, 690)
         # Run A* to find a path from start to goal
         print('Local Start and Goal: ', grid_start, grid_goal)
         print("Searching for a path ...")
@@ -159,7 +158,7 @@ class MotionPlanning(Drone):
         # Convert path to waypoints
         self.waypoints = [[p[0] + north_offset, p[1] + east_offset, TARGET_ALTITUDE, 0] for p in path]
 
-        # TODO: send waypoints to sim (this is just for visualization of waypoints)
+        # Send waypoints to sim (this is just for visualization of waypoints)
         self.send_waypoints()
 
     def start(self):
@@ -179,8 +178,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('--port', type=int, default=5760, help='Port number')
     parser.add_argument('--host', type=str, default='127.0.0.1', help="host address, i.e. '127.0.0.1'")
-    parser.add_argument('--lat', type=float, default=37.792432,  help='Latitude')
-    parser.add_argument('--long', type=float, default=-122.398620, help='Longitude')
+    parser.add_argument('--lat', type=float, default=37.794727,  help='Latitude')
+    parser.add_argument('--long', type=float, default=-122.396214, help='Longitude')
     parser.add_argument('--alt', type=int, default=10, help='Altitude')
     args = parser.parse_args()
 
